@@ -1,0 +1,8 @@
+{
+  "name": "Rắn Săn Mồi",
+  "description": "Trò chơi rắn săn mồi phong cách khối vuông kinh điển với 28 bản đồ, chế độ đấu đôi thời gian thực, cửa hàng 20 skin và bảng xếp hạng.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
