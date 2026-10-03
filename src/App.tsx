@@ -130,6 +130,7 @@ export default function App() {
       // Enter fullscreen: ALWAYS activate in-app fullscreen immediately so mobile & iframes work seamlessly!
       setIsFullscreen(true);
       try {
+        window.scrollTo(0, 1);
         const elem = document.documentElement as any;
         if (elem.requestFullscreen) {
           elem.requestFullscreen().catch(() => {});

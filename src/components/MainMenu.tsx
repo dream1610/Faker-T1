@@ -4,6 +4,8 @@ import { getRankTierName, StorageService } from '../services/storage';
 import { soundManager } from '../services/sound';
 import { SNAKE_SPEED_OPTIONS, SPEED_LEVELS, getSpeedOption } from '../constants/speeds';
 import { SpeedSettingModal } from './SpeedSettingModal';
+import { FullscreenGuideModal } from './FullscreenGuideModal';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import {
   Play,
   Swords,
@@ -19,6 +21,7 @@ import {
   Shield,
   Layers,
   Zap,
+  Smartphone,
 } from 'lucide-react';
 
 interface MainMenuProps {
@@ -58,6 +61,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   const [dpadPref, setDpadPref] = React.useState(StorageService.getDpadPosition());
   const [snakeSpeed, setSnakeSpeed] = React.useState<SnakeSpeedLevel>(() => StorageService.getSnakeSpeed());
   const [showSpeedModal, setShowSpeedModal] = React.useState<boolean>(false);
+  const { isStandalone, isIOS, canPromptNativeInstall, promptInstall } = usePWAInstall();
+  const [showFullscreenGuide, setShowFullscreenGuide] = React.useState<boolean>(false);
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col items-center select-none py-2 px-3">
@@ -422,6 +427,40 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Fullscreen & Hide Toolbar Guide Banner for Mobile Browsers */}
+          {!isStandalone && (
+            <div className="pt-2 border-t border-zinc-800/80">
+              <button
+                type="button"
+                id="btn-menu-fullscreen-guide"
+                onClick={() => {
+                  soundManager.playClick();
+                  setShowFullscreenGuide(true);
+                }}
+                className="w-full p-2.5 bg-amber-950/40 hover:bg-amber-950/70 border-2 border-amber-500/70 text-left transition-colors flex items-center justify-between gap-3 group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-1.5 bg-amber-500 text-zinc-950 font-bold flex-shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-amber-300 group-hover:text-amber-200 truncate">
+                      Chơi Toàn Màn Hình Không Viền (Ẩn Thanh Duyệt)
+                    </div>
+                    <div className="text-[10px] text-zinc-400 truncate">
+                      {isIOS
+                        ? 'Cách ẩn thanh tìm kiếm & chuyển trang trên iPhone'
+                        : 'Cài đặt app để chơi toàn màn hình 100%'}
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-amber-400 border border-amber-500/40 px-2 py-0.5 bg-amber-950/80 flex-shrink-0">
+                  Xem Cách Làm ➔
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 6. Bottom Secondary Options */}
@@ -454,6 +493,15 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           setSnakeSpeed(lvl);
           StorageService.setSnakeSpeed(lvl);
         }}
+      />
+
+      {/* Fullscreen & Hide Toolbar Guide Modal */}
+      <FullscreenGuideModal
+        isOpen={showFullscreenGuide}
+        onClose={() => setShowFullscreenGuide(false)}
+        isIOS={isIOS}
+        canPromptNativeInstall={canPromptNativeInstall}
+        onNativeInstall={promptInstall}
       />
     </div>
   );

@@ -3,9 +3,11 @@ import { Coordinate, Direction, FoodItem, GameTheme, MapObstacleConfig, SnakeSki
 import { SnakeCanvas } from './SnakeCanvas';
 import { ControlsPad } from './ControlsPad';
 import { SpeedSettingModal } from './SpeedSettingModal';
+import { FullscreenGuideModal } from './FullscreenGuideModal';
 import { soundManager } from '../services/sound';
 import { StorageService } from '../services/storage';
 import { useScreenLayout } from '../hooks/useScreenLayout';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SNAKE_SPEED_OPTIONS, SPEED_LEVELS, getSpeedOption } from '../constants/speeds';
 import {
   Play,
@@ -19,6 +21,7 @@ import {
   Maximize2,
   Minimize2,
   Zap,
+  Smartphone,
 } from 'lucide-react';
 
 interface SingleGameArenaProps {
@@ -69,6 +72,10 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
   // Snake Speed Setting (Levels 1 to 5)
   const [speedLevel, setSpeedLevel] = useState<SnakeSpeedLevel>(() => StorageService.getSnakeSpeed());
   const [showSpeedModal, setShowSpeedModal] = useState<boolean>(false);
+
+  // PWA & Browser Toolbar hiding guide
+  const { isStandalone, isIOS, canPromptNativeInstall, promptInstall } = usePWAInstall();
+  const [showFullscreenGuide, setShowFullscreenGuide] = useState<boolean>(false);
 
   const handleChangeSpeed = useCallback((newSpeed: SnakeSpeedLevel) => {
     setSpeedLevel(newSpeed);
@@ -532,6 +539,23 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
             <Infinity className="w-3.5 h-3.5" />
           </button>
 
+          {/* Hide Browser Toolbar button if not in standalone mode */}
+          {!isStandalone && (
+            <button
+              id="btn-single-top-hide-browser"
+              type="button"
+              onClick={() => {
+                soundManager.playClick();
+                setShowFullscreenGuide(true);
+              }}
+              className="px-1.5 py-1 bg-amber-950/80 hover:bg-amber-900 border border-amber-500/60 text-amber-300 rounded-none text-xs font-bold flex items-center gap-1 transition-colors"
+              title="Hướng dẫn ẩn thanh tìm kiếm & chuyển trang"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Ẩn thanh duyệt</span>
+            </button>
+          )}
+
           {/* Fullscreen Toggle */}
           {onToggleFullscreen && (
             <button
@@ -645,6 +669,21 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
                   </button>
                 )}
               </div>
+
+              {!isStandalone && (
+                <button
+                  id="btn-pause-hide-browser"
+                  type="button"
+                  onClick={() => {
+                    soundManager.playClick();
+                    setShowFullscreenGuide(true);
+                  }}
+                  className="w-full max-w-xs py-1.5 px-2 bg-amber-950/80 hover:bg-amber-900 border border-amber-500/60 text-amber-300 text-xs font-bold rounded-none flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Cách Ẩn Thanh Tìm Kiếm & Chuyển Trang (100%)</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -750,6 +789,15 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
         onSelectSpeed={handleChangeSpeed}
         isDynamicSpeed={!isUnlimitedTime}
         onToggleDynamicSpeed={() => setIsUnlimitedTime((prev) => !prev)}
+      />
+
+      {/* Fullscreen & Hide Toolbar Guide Modal */}
+      <FullscreenGuideModal
+        isOpen={showFullscreenGuide}
+        onClose={() => setShowFullscreenGuide(false)}
+        isIOS={isIOS}
+        canPromptNativeInstall={canPromptNativeInstall}
+        onNativeInstall={promptInstall}
       />
     </div>
   );
