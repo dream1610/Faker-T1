@@ -1,4 +1,4 @@
-import { UserAccount, GlobalLeaderboardEntry, ChatMessage } from '../types';
+import { UserAccount, GlobalLeaderboardEntry, ChatMessage, SnakeSpeedLevel } from '../types';
 
 export type DpadPositionPreference = 'auto' | 'right' | 'left';
 
@@ -8,6 +8,7 @@ const ACTIVE_USER_ID_KEY = 'retro_snake_active_user_id';
 const GLOBAL_CHAT_KEY = 'retro_snake_global_chat';
 const GLOBAL_LEADERBOARD_KEY = 'retro_snake_leaderboard';
 const DPAD_POSITION_KEY = 'retro_snake_dpad_position';
+const SNAKE_SPEED_KEY = 'retro_snake_speed_level';
 
 export function getRankTierName(points: number): { title: string; color: string; badge: string } {
   if (points >= 2500) return { title: 'Thách Đấu', color: 'text-amber-400', badge: '👑' };
@@ -340,6 +341,25 @@ export const StorageService = {
   setDpadPosition(pos: DpadPositionPreference) {
     try {
       localStorage.setItem(DPAD_POSITION_KEY, pos);
+    } catch {}
+  },
+
+  getSnakeSpeed(): SnakeSpeedLevel {
+    try {
+      const val = localStorage.getItem(SNAKE_SPEED_KEY);
+      if (val) {
+        const num = parseInt(val, 10);
+        if (num >= 1 && num <= 5) return num as SnakeSpeedLevel;
+      }
+      return 3;
+    } catch {
+      return 3;
+    }
+  },
+
+  setSnakeSpeed(level: SnakeSpeedLevel) {
+    try {
+      localStorage.setItem(SNAKE_SPEED_KEY, String(level));
     } catch {}
   }
 };

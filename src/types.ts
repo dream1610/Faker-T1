@@ -1,5 +1,17 @@
 export type GridSize = 10 | 12 | 15 | 20;
 
+export type SnakeSpeedLevel = 1 | 2 | 3 | 4 | 5;
+
+export interface SnakeSpeedOption {
+  level: SnakeSpeedLevel;
+  label: string;
+  shortLabel: string;
+  multiplier: string;
+  delayFactor: number;
+  color: string;
+  description: string;
+}
+
 export interface Coordinate {
   x: number;
   y: number;

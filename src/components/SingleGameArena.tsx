@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Coordinate, Direction, FoodItem, GameTheme, MapObstacleConfig, SnakeSkin, UserAccount } from '../types';
+import { Coordinate, Direction, FoodItem, GameTheme, MapObstacleConfig, SnakeSkin, SnakeSpeedLevel, UserAccount } from '../types';
 import { SnakeCanvas } from './SnakeCanvas';
 import { ControlsPad } from './ControlsPad';
+import { SpeedSettingModal } from './SpeedSettingModal';
 import { soundManager } from '../services/sound';
 import { StorageService } from '../services/storage';
 import { useScreenLayout } from '../hooks/useScreenLayout';
+import { SNAKE_SPEED_OPTIONS, SPEED_LEVELS, getSpeedOption } from '../constants/speeds';
 import {
   Play,
   Pause,
@@ -16,6 +18,7 @@ import {
   Layers,
   Maximize2,
   Minimize2,
+  Zap,
 } from 'lucide-react';
 
 interface SingleGameArenaProps {
@@ -62,6 +65,15 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [countdownNum, setCountdownNum] = useState<number>(3);
   const [isPlayingStarted, setIsPlayingStarted] = useState<boolean>(false);
+
+  // Snake Speed Setting (Levels 1 to 5)
+  const [speedLevel, setSpeedLevel] = useState<SnakeSpeedLevel>(() => StorageService.getSnakeSpeed());
+  const [showSpeedModal, setShowSpeedModal] = useState<boolean>(false);
+
+  const handleChangeSpeed = useCallback((newSpeed: SnakeSpeedLevel) => {
+    setSpeedLevel(newSpeed);
+    StorageService.setSnakeSpeed(newSpeed);
+  }, []);
 
   // High-performance 60fps Input Queue buffer to prevent skipped or reverse inputs
   const inputQueueRef = useRef<Direction[]>([]);
@@ -224,11 +236,16 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
   useEffect(() => {
     if (!isAlive || isPaused || isGameOver || !isPlayingStarted || countdownNum > 0) return;
 
+    const speedOpt = getSpeedOption(speedLevel);
     let baseSpeed =
       currentMap.gridSize <= 10 ? 190 : currentMap.gridSize <= 12 ? 175 : currentMap.gridSize <= 15 ? 160 : 140;
+
+    // Apply speed multiplier delay factor (lower delay = faster snake)
+    baseSpeed = Math.round(baseSpeed * speedOpt.delayFactor);
+
     if (!isUnlimitedTime) {
-      const speedup = Math.min(70, Math.floor(score * 1.6));
-      baseSpeed = Math.max(80, baseSpeed - speedup);
+      const maxSpeedup = Math.min(Math.floor(baseSpeed * 0.45), Math.floor(score * 1.6));
+      baseSpeed = Math.max(45, baseSpeed - maxSpeedup);
     }
 
     const interval = setInterval(() => {
@@ -353,6 +370,7 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
     foods,
     skin,
     isUnlimitedTime,
+    speedLevel,
     getRandomFreeCoord,
     score,
   ]);
@@ -465,6 +483,23 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1">
+          {/* Speed Adjustment Button */}
+          <button
+            id="btn-single-top-speed"
+            type="button"
+            onClick={() => {
+              soundManager.playClick();
+              setShowSpeedModal(true);
+            }}
+            className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-200 text-xs font-bold rounded-none flex items-center gap-1 transition-colors"
+            title="Chỉnh tốc độ của rắn"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-400 fill-current" />
+            <span className="hidden xs:inline text-zinc-300">Tốc độ:</span>
+            <span className="text-amber-300 font-bold">{getSpeedOption(speedLevel).shortLabel}</span>
+            <span className="text-[10px] text-zinc-400">({getSpeedOption(speedLevel).multiplier})</span>
+          </button>
+
           {/* Pause Button */}
           <button
             id="btn-single-top-pause"
@@ -547,6 +582,46 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
             <div className="absolute inset-0 bg-black/85 backdrop-blur-xs rounded-none flex flex-col items-center justify-center space-y-3 z-30 p-4">
               <Pause className="w-10 h-10 text-amber-400 animate-pulse" />
               <span className="text-base font-bold text-zinc-100">ĐANG TẠM DỪNG</span>
+
+              {/* Inline Quick Speed Adjustment */}
+              <div className="w-full max-w-xs bg-zinc-950 border-2 border-zinc-800 p-2.5 space-y-1.5 text-center">
+                <div className="flex items-center justify-between text-[11px] font-bold">
+                  <span className="text-zinc-300 flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-amber-400 fill-current" /> Tốc Độ Rắn:
+                  </span>
+                  <span className="text-amber-400 font-mono">
+                    {getSpeedOption(speedLevel).shortLabel} ({getSpeedOption(speedLevel).multiplier})
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-1">
+                  {SPEED_LEVELS.map((lvl) => {
+                    const opt = SNAKE_SPEED_OPTIONS[lvl];
+                    const isSel = speedLevel === lvl;
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => {
+                          soundManager.playClick();
+                          handleChangeSpeed(lvl);
+                        }}
+                        className={`py-1 text-[11px] font-bold border transition-colors ${
+                          isSel
+                            ? 'bg-amber-500 border-amber-400 text-zinc-950 shadow-sm'
+                            : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-zinc-500'
+                        }`}
+                        title={opt.label}
+                      >
+                        {opt.multiplier}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-[10px] text-zinc-400 pt-0.5">
+                  {getSpeedOption(speedLevel).description}
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <button
                   id="btn-resume-game"
@@ -593,10 +668,30 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
                   <span className="font-bold text-zinc-200">{snake.length} Ô</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-zinc-500">Tốc Độ Rắn:</span>
+                  <span className="font-bold text-amber-400 flex items-center gap-1">
+                    <Zap className="w-3 h-3 fill-current" /> {getSpeedOption(speedLevel).shortLabel} ({getSpeedOption(speedLevel).multiplier})
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-zinc-500">Xu Nhận Được:</span>
                   <span className="font-bold text-amber-400">+{coinsEarned + (isNewRecord ? 20 : 0)} 🪙</span>
                 </div>
               </div>
+
+              {/* Quick speed change before replay */}
+              <button
+                type="button"
+                id="btn-gameover-change-speed"
+                onClick={() => {
+                  soundManager.playClick();
+                  setShowSpeedModal(true);
+                }}
+                className="w-full max-w-xs py-1 px-2 bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current text-amber-400" />
+                <span>Đổi Tốc Độ (Hiện tại: {getSpeedOption(speedLevel).multiplier})</span>
+              </button>
 
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full max-w-xs pt-1">
                 <button
@@ -646,6 +741,16 @@ export const SingleGameArena: React.FC<SingleGameArenaProps> = ({
           </div>
         )}
       </div>
+
+      {/* Snake Speed Adjustment Modal */}
+      <SpeedSettingModal
+        isOpen={showSpeedModal}
+        onClose={() => setShowSpeedModal(false)}
+        currentSpeed={speedLevel}
+        onSelectSpeed={handleChangeSpeed}
+        isDynamicSpeed={!isUnlimitedTime}
+        onToggleDynamicSpeed={() => setIsUnlimitedTime((prev) => !prev)}
+      />
     </div>
   );
 };

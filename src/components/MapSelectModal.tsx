@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { GridSize, MapObstacleConfig, UserAccount } from '../types';
+import { GridSize, MapObstacleConfig, UserAccount, SnakeSpeedLevel } from '../types';
 import { ALL_MAPS, GRID_SIZES } from '../constants/maps';
+import { SNAKE_SPEED_OPTIONS, SPEED_LEVELS } from '../constants/speeds';
+import { StorageService } from '../services/storage';
 import { soundManager } from '../services/sound';
-import { X, Trophy, Shield, Play } from 'lucide-react';
+import { X, Trophy, Shield, Play, Zap } from 'lucide-react';
 
 interface MapSelectModalProps {
   isOpen: boolean;
@@ -22,6 +24,7 @@ export const MapSelectModal: React.FC<MapSelectModalProps> = ({
   currentUser,
 }) => {
   const [activeSize, setActiveSize] = useState<GridSize>(selectedMap.gridSize);
+  const [currentSpeed, setCurrentSpeed] = useState<SnakeSpeedLevel>(() => StorageService.getSnakeSpeed());
 
   if (!isOpen) return null;
 
@@ -57,7 +60,7 @@ export const MapSelectModal: React.FC<MapSelectModalProps> = ({
         </div>
 
         {/* Grid Size Switcher */}
-        <div className="flex items-center justify-center gap-2 p-3 bg-zinc-950 border-b-2 border-zinc-800 text-xs font-mono">
+        <div className="flex items-center justify-center gap-2 p-3 bg-zinc-950 border-b border-zinc-800 text-xs font-mono">
           <span className="text-zinc-500 mr-2 hidden sm:inline">Kích thước ô lưới:</span>
           {GRID_SIZES.map((size) => (
             <button
@@ -77,6 +80,41 @@ export const MapSelectModal: React.FC<MapSelectModalProps> = ({
               {size}x{size} Khối
             </button>
           ))}
+        </div>
+
+        {/* Speed Selector Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-zinc-900 border-b-2 border-zinc-800 text-xs font-mono">
+          <div className="flex items-center gap-1.5 text-zinc-300">
+            <Zap className="w-3.5 h-3.5 text-amber-400 fill-current" />
+            <span className="font-bold">Tốc độ rắn:</span>
+            <span className="text-amber-400 font-bold">{SNAKE_SPEED_OPTIONS[currentSpeed].label}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            {SPEED_LEVELS.map((lvl) => {
+              const opt = SNAKE_SPEED_OPTIONS[lvl];
+              const isSel = currentSpeed === lvl;
+              return (
+                <button
+                  key={lvl}
+                  type="button"
+                  id={`map-speed-btn-${lvl}`}
+                  onClick={() => {
+                    soundManager.playClick();
+                    StorageService.setSnakeSpeed(lvl);
+                    setCurrentSpeed(lvl);
+                  }}
+                  className={`px-2.5 py-1 text-xs font-bold border transition-colors ${
+                    isSel
+                      ? 'bg-amber-500 border-amber-400 text-zinc-950 font-black shadow-sm'
+                      : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                  title={opt.label}
+                >
+                  {opt.multiplier}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* 7 Maps for chosen size */}

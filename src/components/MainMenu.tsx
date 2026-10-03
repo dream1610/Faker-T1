@@ -1,7 +1,9 @@
 import React from 'react';
-import { UserAccount, MapObstacleConfig, GameTheme } from '../types';
+import { UserAccount, MapObstacleConfig, GameTheme, SnakeSpeedLevel } from '../types';
 import { getRankTierName, StorageService } from '../services/storage';
 import { soundManager } from '../services/sound';
+import { SNAKE_SPEED_OPTIONS, SPEED_LEVELS, getSpeedOption } from '../constants/speeds';
+import { SpeedSettingModal } from './SpeedSettingModal';
 import {
   Play,
   Swords,
@@ -16,6 +18,7 @@ import {
   Flame,
   Shield,
   Layers,
+  Zap,
 } from 'lucide-react';
 
 interface MainMenuProps {
@@ -53,6 +56,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   const personalBest = currentUser.highScores[currentMap.id] || 0;
   const dailyStatus = StorageService.checkDailyReward(currentUser);
   const [dpadPref, setDpadPref] = React.useState(StorageService.getDpadPosition());
+  const [snakeSpeed, setSnakeSpeed] = React.useState<SnakeSpeedLevel>(() => StorageService.getSnakeSpeed());
+  const [showSpeedModal, setShowSpeedModal] = React.useState<boolean>(false);
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col items-center select-none py-2 px-3">
@@ -307,56 +312,114 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </div>
 
         {/* 5. Control Settings Box (Outside Match Configuration) */}
-        <div className="mt-4 p-3 bg-zinc-950 border-2 border-zinc-800 rounded-none text-xs font-mono space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-zinc-300 flex items-center gap-1.5">
-              <span>🎮</span> Cài đặt vị trí nút bấm (Điện thoại):
-            </span>
-            <span className="text-[10px] text-zinc-500">Tối ưu diện tích màn hình</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-2 rounded-none">
-              <span className="text-zinc-400 text-[11px]">Khi màn hình xoay ngang:</span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundManager.playClick();
-                    StorageService.setDpadPosition('right');
-                    setDpadPref('right');
-                  }}
-                  className={`px-2 py-1 text-[11px] font-bold rounded-none border transition-colors ${
-                    dpadPref !== 'left'
-                      ? 'bg-amber-500 text-zinc-950 border-amber-400'
-                      : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
-                  }`}
-                >
-                  Bên Phải
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundManager.playClick();
-                    StorageService.setDpadPosition('left');
-                    setDpadPref('left');
-                  }}
-                  className={`px-2 py-1 text-[11px] font-bold rounded-none border transition-colors ${
-                    dpadPref === 'left'
-                      ? 'bg-amber-500 text-zinc-950 border-amber-400'
-                      : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
-                  }`}
-                >
-                  Bên Trái
-                </button>
-              </div>
+        <div className="mt-4 p-3 bg-zinc-950 border-2 border-zinc-800 rounded-none text-xs font-mono space-y-3">
+          {/* Snake Speed Setting */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-400 fill-current" />
+                <span>Tốc độ của rắn:</span>
+                <span className="text-amber-400 font-mono">
+                  {getSpeedOption(snakeSpeed).shortLabel} ({getSpeedOption(snakeSpeed).multiplier})
+                </span>
+              </span>
+              <button
+                type="button"
+                id="btn-menu-open-speed-modal"
+                onClick={() => {
+                  soundManager.playClick();
+                  setShowSpeedModal(true);
+                }}
+                className="text-[10px] text-amber-400 hover:text-amber-300 underline font-bold"
+              >
+                Chi tiết & mô tả
+              </button>
             </div>
 
-            <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-2 rounded-none text-[11px] text-zinc-400">
-              <span>Khi màn hình để dọc:</span>
-              <span className="font-bold text-emerald-400 bg-zinc-950 px-2 py-0.5 border border-zinc-700">
-                Ở Dưới Cùng (Tự Động)
+            {/* 5 Speed buttons */}
+            <div className="grid grid-cols-5 gap-1.5">
+              {SPEED_LEVELS.map((lvl) => {
+                const opt = SNAKE_SPEED_OPTIONS[lvl];
+                const isSel = snakeSpeed === lvl;
+                return (
+                  <button
+                    key={lvl}
+                    type="button"
+                    id={`btn-menu-speed-${lvl}`}
+                    onClick={() => {
+                      soundManager.playClick();
+                      StorageService.setSnakeSpeed(lvl);
+                      setSnakeSpeed(lvl);
+                    }}
+                    className={`py-1.5 px-1 border-2 text-center transition-all ${
+                      isSel
+                        ? 'bg-amber-500 border-amber-400 text-zinc-950 font-black shadow-md'
+                        : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800'
+                    }`}
+                  >
+                    <div className="text-[11px] font-bold">{opt.multiplier}</div>
+                    <div className="text-[9px] opacity-80 leading-none">{opt.shortLabel}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-zinc-400 pt-0.5">
+              💡 {getSpeedOption(snakeSpeed).description}
+            </p>
+          </div>
+
+          {/* Dpad Positioning Setting */}
+          <div className="pt-2 border-t border-zinc-800/80">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-bold text-zinc-300 flex items-center gap-1.5">
+                <span>🎮</span> Cài đặt vị trí nút bấm (Điện thoại):
               </span>
+              <span className="text-[10px] text-zinc-500">Tối ưu diện tích màn hình</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-2 rounded-none">
+                <span className="text-zinc-400 text-[11px]">Khi màn hình xoay ngang:</span>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundManager.playClick();
+                      StorageService.setDpadPosition('right');
+                      setDpadPref('right');
+                    }}
+                    className={`px-2 py-1 text-[11px] font-bold rounded-none border transition-colors ${
+                      dpadPref !== 'left'
+                        ? 'bg-amber-500 text-zinc-950 border-amber-400'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
+                    }`}
+                  >
+                    Bên Phải
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundManager.playClick();
+                      StorageService.setDpadPosition('left');
+                      setDpadPref('left');
+                    }}
+                    className={`px-2 py-1 text-[11px] font-bold rounded-none border transition-colors ${
+                      dpadPref === 'left'
+                        ? 'bg-amber-500 text-zinc-950 border-amber-400'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-200'
+                    }`}
+                  >
+                    Bên Trái
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-2 rounded-none text-[11px] text-zinc-400">
+                <span>Khi màn hình để dọc:</span>
+                <span className="font-bold text-emerald-400 bg-zinc-950 px-2 py-0.5 border border-zinc-700">
+                  Ở Dưới Cùng (Tự Động)
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -381,6 +444,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Snake Speed Detail Modal */}
+      <SpeedSettingModal
+        isOpen={showSpeedModal}
+        onClose={() => setShowSpeedModal(false)}
+        currentSpeed={snakeSpeed}
+        onSelectSpeed={(lvl) => {
+          setSnakeSpeed(lvl);
+          StorageService.setSnakeSpeed(lvl);
+        }}
+      />
     </div>
   );
 };
